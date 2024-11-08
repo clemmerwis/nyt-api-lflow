@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -24,7 +24,7 @@ class BestSellersHistoryRequest extends FormRequest
         return [
             'author' => 'sometimes|string',
             'isbn' => 'sometimes|array',
-            'isbn.*' => ['regex:/^(?:\d{10}|\d{13})$/'], // Must be 10 or 13 digits
+            'isbn.*' => 'sometimes|regex:/^(?:\d{10}|\d{13})$/', // Must be 10 or 13 digits
             'title' => 'sometimes|string',
             'offset' => 'sometimes|integer|multiple_of:20|min:0'
         ];
