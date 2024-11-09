@@ -21,7 +21,7 @@ class NYTBooksService
      *
      * @param array{
      *   author?: string,
-     *   isbn?: string,    // Changed from array<string>
+     *   isbn?: string,    // Semicolon-separated string of ISBNs
      *   title?: string,
      *   offset?: int
      * } $filters
