@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Client\Factory as HttpFactory;
 
 class NYTBooksService
@@ -35,6 +36,11 @@ class NYTBooksService
      */
     public function getBestSellersHistory(array $filters): array
     {
+        // Manually URL-encode the semicolon in the 'isbn' parameter
+        if (isset($queryParams['isbn'])) {
+            $queryParams['isbn'] = str_replace(';', '%3B', $queryParams['isbn']);
+        }
+
         $queryParams = array_filter([
             'api-key' => $this->apiKey,
             'author' => $filters['author'] ?? null,
@@ -42,6 +48,8 @@ class NYTBooksService
             'offset' => $filters['offset'] ?? 0,
             'isbn' => $filters['isbn'] ?? null
         ]);
+
+        Log::info('NYT API Request', ['queryParams' => $queryParams]);
 
         $response = $this->http->get(
             "{$this->baseUrl}/lists/best-sellers/history.json",
