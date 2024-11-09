@@ -36,11 +36,6 @@ class NYTBooksService
      */
     public function getBestSellersHistory(array $filters): array
     {
-        // Manually URL-encode the semicolon in the 'isbn' parameter
-        if (isset($queryParams['isbn'])) {
-            $queryParams['isbn'] = str_replace(';', '%3B', $queryParams['isbn']);
-        }
-
         $queryParams = array_filter([
             'api-key' => $this->apiKey,
             'author' => $filters['author'] ?? null,
@@ -49,12 +44,16 @@ class NYTBooksService
             'isbn' => $filters['isbn'] ?? null
         ]);
 
-        Log::info('NYT API Request', ['queryParams' => $queryParams]);
+        $url = "{$this->baseUrl}/lists/best-sellers/history.json";
 
-        $response = $this->http->get(
-            "{$this->baseUrl}/lists/best-sellers/history.json",
-            $queryParams
-        );
+        // Add raw URL to logging to verify encoding
+        Log::info('NYT API Request', [
+            'url' => $url,
+            'queryParams' => $queryParams,
+            'example_encoded' => http_build_query($queryParams)
+        ]);
+
+        $response = $this->http->get($url, $queryParams);
 
         if (!$response->successful()) {
             throw new \Exception(

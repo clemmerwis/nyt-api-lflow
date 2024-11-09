@@ -25,12 +25,6 @@ class BestSellersHistoryRequest extends FormRequest
                 'isbn' => $isbnString,
             ]);
         }
-
-        Log::info('After Validation', [
-            'isbn' => $this->input('isbn'),
-            'isbnType' => gettype($this->input('isbn')),
-            'hasIsbn' => $this->has('isbn'),
-        ]);
     }
 
     public function rules(): array
