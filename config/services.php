@@ -35,4 +35,7 @@ return [
         ],
     ],
 
+    'nyt' => [
+        'api_key' => env('NYT_API_KEY'),
+    ],
 ];

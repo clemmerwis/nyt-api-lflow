@@ -23,8 +23,8 @@ class BestSellersHistoryRequest extends FormRequest
     {
         return [
             'author' => 'sometimes|string',
-            'isbn' => 'sometimes|array',
-            'isbn.*' => 'sometimes|regex:/^(?:\d{10}|\d{13})$/', // Must be 10 or 13 digits
+            // Format: single ISBN or semicolon-separated ISBNs
+            'isbn' => 'sometimes|string|regex:/^(\d{10}|\d{13})(;\d{10}|\d{13})*$/',
             'title' => 'sometimes|string',
             'offset' => 'sometimes|integer|multiple_of:20|min:0'
         ];
@@ -43,10 +43,10 @@ class BestSellersHistoryRequest extends FormRequest
 
     public function prepareForValidation(): void
     {
-        // If ISBN comes as a single string, convert it to an array
-        if ($this->has('isbn') && is_string($this->isbn)) {
+        // If ISBN comes as an array, convert it to a semicolon-separated string
+        if ($this->has('isbn') && is_array($this->isbn)) {
             $this->merge([
-                'isbn' => explode(',', $this->isbn)
+                'isbn' => implode(';', $this->isbn)
             ]);
         }
     }

@@ -21,7 +21,7 @@ class NYTBooksService
      *
      * @param array{
      *   author?: string,
-     *   isbn?: array<string>,
+     *   isbn?: string,    // Changed from array<string>
      *   title?: string,
      *   offset?: int
      * } $filters
@@ -40,7 +40,7 @@ class NYTBooksService
             'author' => $filters['author'] ?? null,
             'title' => $filters['title'] ?? null,
             'offset' => $filters['offset'] ?? 0,
-            'isbn' => isset($filters['isbn']) ? implode(';', $filters['isbn']) : null
+            'isbn' => $filters['isbn'] ?? null
         ]);
 
         $response = $this->http->get(

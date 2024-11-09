@@ -15,7 +15,8 @@ use Mockery\MockInterface;
 * can_use_all_filters_together()
 * validates_isbn_must_be_numeric()
 * validates_isbn_length()
-* accepts_comma_separated_isbn_string()
+* converts_isbn_array_to_semicolon_separated_string()
+* accepts_comma_separated_isbn_string_and_converts_to_semicolon()
 * offset_zero_is_valid()
 * pagination_works_with_larger_offset()
 * validates_offset_multiple_of_twenty()
@@ -118,7 +119,7 @@ class BestSellersControllerTest extends TestCase
     /** @test */
     public function can_search_by_single_isbn(): void
     {
-        $filters = ['isbn' => ['1234567890']];
+        $filters = ['isbn' => '1234567890'];
 
         $expectedResponse = [
             'status' => 'OK',
@@ -140,7 +141,7 @@ class BestSellersControllerTest extends TestCase
     /** @test */
     public function can_search_by_multiple_isbns(): void
     {
-        $filters = ['isbn' => ['1234567890', '1234567890123']];
+        $filters = ['isbn' => '1234567890;1234567890123'];  // Semicolon-separated string
 
         $expectedResponse = [
             'status' => 'OK',
@@ -167,7 +168,7 @@ class BestSellersControllerTest extends TestCase
     {
         $filters = [
             'author' => 'Jane Developer',
-            'isbn' => ['1234567890', '1234567890123'],
+            'isbn' => '1234567890;1234567890123',
             'title' => 'The Test Novel',
             'offset' => 20
         ];
@@ -193,33 +194,91 @@ class BestSellersControllerTest extends TestCase
     public function validates_isbn_must_be_numeric(): void
     {
         $response = $this->postJson(route('api.v1.best-sellers'), [
-            'isbn' => ['123abc4567']
+            'isbn' => '123abc4567'  // Single non-numeric ISBN
         ]);
 
         $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['isbn.0']);
+            ->assertJsonValidationErrors(['isbn']);
+
+        $response = $this->postJson(route('api.v1.best-sellers'), [
+            'isbn' => '1234567890;123abc4567'  // Multiple ISBNs with non-numeric
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['isbn']);
     }
 
     /** @test */
     public function validates_isbn_length(): void
     {
         $response = $this->postJson(route('api.v1.best-sellers'), [
-            'isbn' => ['123', '12345678901234'] // Too short and too long
+            'isbn' => '123'  // Too short
         ]);
 
         $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['isbn.0', 'isbn.1']);
+            ->assertJsonValidationErrors(['isbn']);
+
+        $response = $this->postJson(route('api.v1.best-sellers'), [
+            'isbn' => '12345678901234'  // Too long
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['isbn']);
+
+        $response = $this->postJson(route('api.v1.best-sellers'), [
+            'isbn' => '123;12345678901234'  // Multiple invalid lengths
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['isbn']);
     }
 
     /** @test */
-    public function accepts_comma_separated_isbn_string(): void
+    public function converts_isbn_array_to_semicolon_separated_string(): void
     {
+        // Input from client as array
+        $requestFilters = [
+            'isbn' => ['1234567890', '1234567890123']
+        ];
+
+        // What the service should receive after FormRequest processing
+        $expectedServiceFilters = [
+            'isbn' => '1234567890;1234567890123'
+        ];
+
+        $expectedResponse = [
+            'status' => 'OK',
+            'num_results' => 2,
+            'results' => [
+                $this->getSampleBestSellerData(),
+                $this->getSampleBestSellerData()
+            ]
+        ];
+
+        // Verify the service receives the converted string format
+        $this->mock->shouldReceive('getBestSellersHistory')
+            ->once()
+            ->with($expectedServiceFilters)
+            ->andReturn($expectedResponse);
+
+        // Send request with array format
+        $response = $this->postJson(route('api.v1.best-sellers'), $requestFilters);
+
+        $response->assertOk()
+            ->assertJson($expectedResponse);
+    }
+
+    /** @test */
+    public function accepts_comma_separated_isbn_string_and_converts_to_semicolon(): void
+    {
+        // Input with comma-separated ISBNs
         $requestFilters = [
             'isbn' => '1234567890,1234567890123'
         ];
 
-        $expectedFilters = [
-            'isbn' => ['1234567890', '1234567890123']
+        // What the service should receive after FormRequest processing
+        $expectedServiceFilters = [
+            'isbn' => '1234567890;1234567890123'
         ];
 
         $expectedResponse = [
@@ -233,7 +292,7 @@ class BestSellersControllerTest extends TestCase
 
         $this->mock->shouldReceive('getBestSellersHistory')
             ->once()
-            ->with($expectedFilters)
+            ->with($expectedServiceFilters)
             ->andReturn($expectedResponse);
 
         $response = $this->postJson(route('api.v1.best-sellers'), $requestFilters);
